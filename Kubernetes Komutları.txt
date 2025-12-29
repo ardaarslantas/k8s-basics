@@ -1,0 +1,806 @@
+Kubernetes Komutları Kubernetes 101
+
+minikube start --driver=docker : bu komut ile docker'da kubernetes komutu başlatıyorum.
+
+🔹 kubectl get nodes : Kümeyi oluşturan fiziksel veya sanal makineleri (node'ları) gösterir.
+
+Örnek Çıktı: 
+NAME        STATUS   ROLES           AGE     VERSION
+minikube    Ready    control-plane   3d      v1.30.1
+
+🔹 kubectl get pods : Kubernetes içinde çalışan uygulamaları/container'ları kapsayan birimleri (pod'ları) gösterir.
+
+Örnek Çıktı:
+NAME                    READY   STATUS    RESTARTS   AGE
+nginx-deployment-1     1/1     Running   0          10m
+
+kubectl get nodes -o wide && kubectl get pods -o wide : Daha fazla teknik detay gösterir. (-o wide)
+
+
+🔹 kubectl run mypod --image=nginx : image nginx pod oluşturur.
+
+🔹 kubectl logs firstpod : podun loglarını görüntüler
+
+🔹 kubectl exec -it firstpod -- /bin/sh : podun içine girmek için kullanılır.
+
+🔹 kubectl delete pods firstpod : podu silmek için kullanılır.
+
+🔹 kubectl describe pod firstpod : Bir Kubernetes kaynağının (örneğin pod, deployment, service...) ayrıntılarını ve olaylarını (Events) gösterir.
+
+🔹 kubectl apply -f pod1.yaml : pod1.yaml dosyasındaki Kubernetes tanımını kümeye uygular (varsa günceller, yoksa oluşturur). (Pod ise ayağa kaldırır)
+
+🔹Init Container: Pod’daki ana container’lardan önce çalışan, hazırlık/bağımlılık kontrolü yapan ve işi bitince kapanan container’dır.
+🔹Init container’lar genelde Pod veya Deployment YAML’ında spec.initContainers: altında tanımlanır.
+
+🔹Label → Pod, Service, Deployment gibi objelere eklenen anahtar/değer çiftleridir (örn: app=nginx). Nesneleri gruplamak ve tanımlamak için kullanılır.
+🔹Selector → Label’lara göre filtreleme yapar. Örn: Service bir Pod’u seçerken selector: app=nginx yazarız → sadece bu label’a sahip Pod’lara trafik gider.
+
+🚀 Label'da iki çeşit filtreleme özelliği bulunmaktadır. 🚀
+🔹Equality-based → =, ==, != ile tek değer eşitliği kontrolü.
+Örn: app=nginx, env!=prod
+
+🔹Set-based → in, notin, exists ile çoklu değer veya varlık kontrolü.
+Örn: env in (dev,test), tier notin (frontend), app
+🔹Equality = basit eşitlik, Set-based = liste/varlık kontrolü.
+
+🔹Label → Objeleri gruplamak ve filtrelemek için kullanılır. (örn: Service, Deployment pod seçerken)
+🔹Annotation → Objeye ekstra açıklama/metaveri eklemek için kullanılır, filtreleme yapılmaz.
+
+
+🔹Deployment, Pod’ları ve onların ReplicaSet’lerini yönetmek için kullanılır. Ayrı ayrı YAML yazmaya gerek kalmadan tek bir YAML içinde Pod tanımı, replicas sayısı ve yönetim kuralları birlikte tanımlanabilir.
+🔹Yani: Deployment = Pod + ReplicaSet + Yönetim özellikleri (scale, update, rollback).
+
+🚀 Kubernetes’te Deployment için strategy.type alanında 2 seçenek vardır: 🚀
+
+🔹 1. Recreate
+Eski Pod’ları tamamen siler, sonra yeni Pod’ları başlatır.
+Dezavantaj → kesinti (downtime) yaşanır.
+
+🔹 2. RollingUpdate (varsayılan)
+Yeni Pod’ları yavaş yavaş açar, eski Pod’ları sırayla kapatır.
+Kesintisiz güncelleme sağlar.
+En çok kullanılan strateji budur.
+Ayrıca maxUnavailable ve maxSurge gibi ayarlarla özelleştirilebilir.
+
+
+🚀 maxUnavailable: Güncelleme sırasında en fazla 1 Pod devre dışı olabilir. 🚀
+🚀 maxSurge: Aynı anda fazladan en fazla 1 yeni Pod açılabilir. 🚀
+
+🔹 Eğer kind: ReplicaSet ise…
+Kubernetes sadece Pod sayısını sabit tutar.
+Versiyonlama, rollout, rollback, update stratejisi gibi şeyler yoktur.
+ReplicaSet’in işi şudur: 👉 “Benim görevim Pod sayısını saymak. Eğer eksik varsa açarım, fazla varsa silerim.”
+
+🔹 Eğer kind: Deployment ise…
+🔹Kubernetes arka planda bir ReplicaSet oluşturur.
+🔹Senin için Pod sayısını yine ReplicaSet yönetir ama ekstra:
+🔹Rolling update stratejisi,
+🔹Recreate stratejisi,
+🔹kubectl rollout undo, kubectl rollout status gibi komutlar,
+🔹Versiyon geçmişi (revision) saklama.
+
+🔹Recreate stratejisi
+Ne yapar? Önce tüm eski Pod’ları siler, sonra yenilerini açar → downtime olabilir.
+🔹Ne zaman tercih edilir?
+State/lock çakışması riskinde (aynı veritabanına aynı anda iki sürüm bağlanmasın).
+Eski ve yeni sürümün aynı anda çalışması kesinlikle istenmiyorsa.
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Kubectl Rollout Komutları (Deployment için)
+
+🔹 kubectl rollout status
+Amaç: Güncellemenin ilerleyişini ve sonucunu gösterir.
+Kullanım:
+kubectl rollout status deployment/my-app
+
+Çıktılar:
+successfully rolled out → Güncelleme tamam.
+Beklemede kalırsa → Pod’lar Ready olmamıştır (health check/probe kontrol et).
+
+🔹 kubectl rollout undo
+Amaç: Son güncellemeyi geri alır (bir önceki revision’a döner).
+Kullanım:
+kubectl rollout undo deployment/my-app
+
+Belirli bir revision’a dönmek için:
+kubectl rollout undo deployment/my-app --to-revision=3
+
+🔹 kubectl rollout history
+Amaç: Deployment’ın versiyon (revision) geçmişini gösterir.
+Kullanım:
+kubectl rollout history deployment/my-app
+
+Belirli bir revision detayını görmek:
+kubectl rollout history deployment/my-app --revision=2
+
+
+🔹Change Cause (açıklama):
+Eskiden --record flag’i ile otomatik kaydediliyordu (deprecated).
+Artık manuel annotation ekleniyor:
+kubectl annotate deployment my-app kubernetes.io/change-cause="nginx sürümü 1.27.1'e güncellendi"
+
+🔹 Yardımcı Komutlar
+Duraklat / Devam ettir:
+kubectl rollout pause deployment/my-app
+kubectl rollout resume deployment/my-app
+Büyük güncellemeleri parça parça kontrol etmek için faydalı.
+
+🔹 Yeni image set ederek güncelleme tetiklemek:
+kubectl set image deployment/my-app nginx=nginx:1.27.1
+Buradaki nginx → Pod template içindeki container adı.
+
+
+🔹 Kubernetes Network Temelleri
+
+🔹Pod-to-Pod Communication
+Cluster’daki her pod’un kendi IP adresi var.
+Flat Network mantığı: Tüm pod’lar birbirine NAT olmadan erişebilmeli.
+Bu işi CNI (Container Network Interface) pluginleri yapar (Calico, Flannel, Cilium vs.).
+
+🔹Service
+Pod IP’leri dinamik olduğundan (pod ölür/yeni pod yaratılır), stabil bir erişim noktası lazım.
+Service bu noktayı sağlar → DNS üzerinden sabit isimle ulaşabilirsin (my-app.default.svc.cluster.local).
+
+🔹Ingress
+Service genellikle cluster içi erişim sağlar.
+Dış dünyadan erişim için Ingress kullanılır (ör: Nginx Ingress Controller).
+Domain bazlı routing, TLS termination gibi özellikler verir.
+
+🔹API Server ile İletişim
+kubectl senin bilgisayarından API Server’a HTTP(S) request atar.
+kubelet ise node üzerinde çalışıp API Server’a sürekli status raporlar ve pod spec’lerini alır.
+
+🔹Service ile ilgili eğitim dökümanındaki service klasörü içerisindeki yaml dosyaları kontrol edilmedilir...🔹
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Liveness Probe Nedir?
+Amaç: Bir Pod içindeki container’ın hala çalışıp çalışmadığını kontrol eder.
+Eğer probe başarısız olursa Kubernetes container’ı öldürür (kill eder) ve yeniden başlatır.
+Yani uygulaman çalışıyor görünüp aslında takılıp kalmış olabilir → işte bu durumda livenessProbe onu otomatik olarak resetler.
+
+📌 Kullanım Senaryosu
+Uygulama process’i “run” durumunda görünüyor ama aslında cevap vermiyor (örn: deadlock, sonsuz döngü, RAM tükendi).
+Restart edilirse sorun düzeliyor.
+livenessProbe sayesinde bu otomatik yapılır, manuel müdahale gerekmez.
+
+📌 Önemli Parametreler
+initialDelaySeconds → İlk kontrol yapılmadan önce beklenecek süre. (uygulama açılışta zaman istiyorsa önemli)
+periodSeconds → Kaç saniyede bir kontrol yapılacak.
+timeoutSeconds → Kontrolün zaman aşımı.
+failureThreshold → Kaç defa arka arkaya hata alınca başarısız sayılacak.
+successThreshold → Kaç defa başarılı olunca tekrar sağlıklı kabul edilecek (genelde readiness için kullanılır).
+
+📌 Readiness Probe Nedir?
+Amaç: Bir Pod içindeki container’ın trafiğe hazır olup olmadığını kontrol eder.
+Eğer probe başarısız olursa Kubernetes container’ı öldürmez, sadece Service trafiğini bu Pod’a yönlendirmez.
+Yani uygulama “yaşıyor” olabilir ama hazır değilse (örn: DB’ye bağlanmadı, cache yüklenmedi) → readinessProbe sayesinde o Pod’a istek gitmez.
+
+📌 Kullanım Senaryosu
+Uygulama yeni açılıyor ama henüz bağlantıları kurmadı.
+Uygulama çalışıyor ama geçici olarak servis veremiyor (örn: bakım modu, backend yanıt vermiyor).
+Rolling update sırasında yeni Pod hazır olana kadar trafik almasın istiyoruz.
+
+📌 Önemli Parametreler
+initialDelaySeconds → İlk kontrol yapılmadan önce beklenecek süre. (örn: açılışta app’in hazır olması uzun sürüyorsa)
+periodSeconds → Kaç saniyede bir kontrol yapılacak.
+timeoutSeconds → Kontrolün zaman aşımı süresi.
+failureThreshold → Kaç defa arka arkaya hata alınca Pod “NotReady” sayılacak.
+successThreshold → Kaç defa arka arkaya başarılı olunca Pod tekrar “Ready” kabul edilecek. (Readiness için çok önemlidir 👍)
+
+✅ Kısaca Fark:
+Liveness = Container yaşıyor mu? (Fail → Restart)
+Readiness = Container hazır mı? (Fail → Trafiğe kapat, ama restart etme)
+
+🚀 readinessProbe ve livenessProbe yaml dosyaları kontrol edilmelidir. 🚀
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Kubernetes Resource Requests & Limits – Özet Not
+
+requests
+Pod’un garanti edilen minimum kaynak ihtiyacı.
+Scheduler Pod’u bir node’a yerleştirirken bu değeri dikkate alır.
+
+Örn: memory: "64M" → bu Pod için en az 64 MB RAM ayır.
+Örn: cpu: "250m" → en az 0.25 CPU ayır.
+
+limits
+Pod’un kullanabileceği maksimum kaynak.
+RAM aşılırsa → Container OOMKilled (ölür, yeniden başlar).
+CPU aşılırsa → Container throttle edilir (yavaşlatılır, down olmaz).
+
+Örn: memory: "256M" → Pod max 256 MB RAM kullanabilir.
+Örn: cpu: "0.5" → Pod max yarım CPU kullanabilir.
+
+✅ Kural:
+RAM aşılırsa → Pod down olur (OOMKilled → restart).
+CPU aşılırsa → Pod çalışmaya devam eder ama yavaşlar.
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Environment Variables (env)
+🔹 Container içine dışarıdan değişken tanımlamak için kullanılır.
+🔹 Uygulama ayarlarını YAML üzerinden vermeyi sağlar.
+🔹 env: altında name ve value ile tanımlanır.
+
+Örnek:
+env:
+  - name: APP_MODE
+    value: "production"
+
+🔹 Container içinde echo $APP_MODE veya printenv ile görülebilir.
+🔹 ConfigMap ve Secret ile birlikte daha sonra dinamik hale getirilebilir.
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Secret (Gizli Veri) Nedir?
+
+🔹 Kubernetes’te hassas bilgileri (şifre, API key, token, vs.) güvenli şekilde saklamak için kullanılır.
+🔹 ConfigMap’e benzer ama veriler base64 ile encode edilerek tutulur.
+🔹 Secret içindeki veriler Pod’a env (environment) olarak veya dosya (volume) olarak aktarılabilir.
+🔹 Amaç, gizli bilgileri YAML dosyalarına veya image içine yazmadan dışarıdan vermektir.
+
+🔹 Oluşturma Örneği:
+
+kubectl create secret generic mysecret3 \
+  --from-file=db_server=server.txt \
+  --from-file=db_username=username.txt \
+  --from-file=db_password=password.txt
+
+
+➡️ Bu komut mysecret3 adında bir Secret oluşturur,
+ve her dosyanın içeriğini key/value olarak saklar.
+
+🔹 Görüntüleme:
+
+kubectl get secrets
+kubectl describe secret mysecret3
+kubectl get secret mysecret3 -o yaml
+
+
+🔹 Pod içinde kullanma yolları:
+1️⃣ Env olarak:
+Secret değerlerini environment değişkeni gibi alır.
+
+env:
+  - name: username
+    valueFrom:
+      secretKeyRef:
+        name: mysecret3
+        key: db_username
+
+
+2️⃣ Volume olarak:
+Secret değerlerini dosya şeklinde container içine yazar.
+
+volumeMounts:
+  - name: secret-vol
+    mountPath: /secret
+volumes:
+  - name: secret-vol
+    secret:
+      secretName: mysecret3
+
+
+🔹 Güvenlik Notu:
+Secrets, base64 ile encode edilir ama şifrelenmez —
+bu yüzden üretim ortamlarında encryption at rest (diskte şifreleme) özelliği aktif edilmelidir.
+
+🔹 Kısaca:
+ConfigMap → yapılandırma bilgileri
+Secret → hassas bilgileri güvenli şekilde saklamak için
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 NodeAffinity
+Pod’un hangi node’da veya hangi podların yanında çalışacağını belirlemek için kullanılan kurallar bütünüdür.
+
+🔹 Node label’a bakar
+🔹 required = uymazsa pending
+🔹 preferred = uymazsa çalışır
+🔹 Node seçimi için
+🔹 GPU/SSD/RAM/zone gibi durumlarda
+
+📌 PodAffinity
+
+🔹 Pod label’a bakar
+🔹 Pod’u diğer podların yanına koyar
+🔹 Yakın yerleşim (same node/zone)
+🔹 required = zorunlu
+🔹 preferred = mümkünse
+🔹 frontend+cache gibi senaryolarda
+
+📌 PodAntiAffinity
+
+🔹 Pod label’a bakar
+🔹 Podları birbirinden uzak tutar
+🔹 Replica’ları farklı node’lara dağıtır
+🔹 Yüksek erişilebilirlik (HA) sağlar
+🔹 required/preferred destekler
+
+📌 Fark Kısaca
+
+🔹 NodeAffinity = node seçimi
+🔹 PodAffinity = pod komşuluğu
+🔹 PodAntiAffinity = pod dağılımı
+
+📌 topologyKey
+
+🔹 hostname → aynı node
+🔹 zone → aynı zone
+🔹 region → aynı bölge
+
+📌 Operatörler
+
+🔹 In → listedekilerden biri
+🔹 NotIn → listedekilerden biri değil
+🔹 Exists → key varsa yeter
+🔹 DoesNotExist → key yoksa eşleşir
+
+📌 Kısacası
+NodeAffinity → hangi node’a gitsin?
+PodAffinity → hangi podun yanına gitsin?
+PodAntiAffinity → hangi podlardan uzak dursun?
+
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 Taint Nedir?
+
+Node’a konulan bir kuraldır.
+Mantık: “Benim üzerime her pod gelemez, sadece izin verdiğim podlar gelebilir.”
+
+Node’u iten/uzaklaştıran bir etiket gibidir.
+
+Üç parçadan oluşur:
+key=value:Effect
+
+🎯 Taint Effect Türleri – Süper Basit Açıklama
+1️⃣ NoSchedule
+👉 “Yeni podları buraya getirme.”
+  YENİ podlar bu node’a gelemez
+  Ama node’da zaten çalışan podlar kalır
+Kısacası:
+❌ Yeni pod yok
+✔️ Eski podlar durabilir
+
+2️⃣ PreferNoSchedule
+👉 “Mümkünse yeni podları buraya getirme; ama çok gerekirse getirebilirsin.”
+Kubernetes önce diğer node'lara göndermeye çalışır
+Ama başka yer yoksa yine de bu node’a koyabilir
+
+Kısacası:
+➡️ Yasak değil, sadece tavsiye.
+Kubernetes: “Buraya koymasam iyi olur ama zorunluysa koyarım.”
+
+3️⃣ NoExecute
+👉 “Yeni podları alma, var olanları da kov.”
+Yeni podlar gelemez
+Zaten çalışan podlar da atılır / taşınır
+Kısacası:
+❌ Yeni pod yok
+❌ Eski podlar da kalamaz → dışarı atılır
+
+Örnek
+kubectl taint nodes node1 role=db:NoSchedule
+
+
+Bu node’a sadece toleration’ı olan podlar gelebilir.
+
+📌 Toleration Nedir?
+
+Pod’un üzerinde olur.
+Mantık: “Bu pod, belirtilen tainti tolere edebilir, yani o node’da çalışabilir.”
+
+Taint’ten korkmayan pod demektir.
+
+Pod’un spec kısmına eklenir.
+
+Örnek
+tolerations:
+  - key: "role"
+    operator: "Equal"
+    value: "db"
+    effect: "NoSchedule"
+
+
+Bu pod, role=db:NoSchedule taint'i olan node’a gitmeye izinli olur.
+
+🎫 Toleration ne sağlıyor?
+
+Toleration → “Bu taint’i tolere ediyorum, o node’a gelebilirim.” geçiş izni.
+
+Bu yüzden:
+
+✔️ Yeni pod + toleration varsa → node kabul eder
+✔️ Eski pod + toleration varsa → zaten kabul edilir veya kalabilir
+❌ Yeni pod + toleration yok → NO SCHEDULE → reddedilir
+✔️ Eski pod + toleration yok → node’dan ATILMAZ
+
+🧠 Kısa Özet 
+
+Taint = Node’a “benden uzak durun” bariyeri koymak.
+
+Toleration = Pod’un “ben o bariyeri geçebilirim” demesi.
+
+Taint node’da olur → sınırlama.
+
+Toleration pod’da olur → izin.
+
+
+
+🎯 Nerede Kullanılır?
+
+Sadece belirli pod’ları çalıştırmak için özel node’lar varsa
+(ör. database node, gpu node, monitoring node)
+
+Sistemde istenmeyen pod’ların yanlış nodda çalışmasını engellemek için.
+
+Eviction / NoExecute ile pod atma senaryolarında.
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 DaemonSet Nedir?
+
+Bir DaemonSet, Kubernetes’te her node üzerinde bir pod çalıştırmak için kullanılan kontrol yapısıdır.
+
+🧲 Mantık:
+Cluster’da 5 node varsa → DaemonSet 5 pod oluşturur.
+Yeni node eklersen → otomatik o node’da da bir pod açılır.
+Node silinir → DaemonSet pod’u da silinir.
+
+📌 DaemonSet Ne İşe Yarar?
+
+Her node’da arka plan ajanları çalıştırmak için kullanılır.
+
+Örnek kullanım alanları:
+
+📄 Log toplama (Fluentd, Filebeat)
+
+📈 Node metrics Agent (Node Exporter, Metricbeat)
+
+🔍 Monitoring agent (Prometheus Node Exporter)
+
+🔐 Security agent (Falco)
+
+📡 Network pluginler (Calico, Cilium)
+
+🐳 Storage pluginler
+
+📌 DaemonSet Pod’ları Nasıl Çalışır?
+
+Scheduler her node’a 1 pod düşürür.
+
+Pod sayısı node sayısı kadar olur.
+
+Node=3 → Pod=3
+
+Node=5 → Pod=5
+
+Yani replica değeri yoktur.
+Scale-out = yeni node ekle.
+Scale-in = node sil.
+
+📌 DaemonSet’in Özellikleri
+✔ Her node’da ayni pod’u çalıştırır
+
+Kopya sayısı node count’tur.
+
+✔ Node eklendiğinde otomatik pod ekler
+
+El ile scale etmezsin.
+
+✔ nodeSelector / tolerations kullanılabilir
+
+Hangi node’larda çalışacağını seçebilirsin.
+
+🔹 Örnek: sadece worker node’larında
+🔹 Örnek: master node’larda da çalışsın (toleration ekleyerek)
+
+📌 DaemonSet ile Deployment farkı
+Özellik	Deployment	DaemonSet
+Pod sayısı	Sen belirlersin (replicas)	Her node’da 1
+Scale	Komutla scale edilir	Node sayısına göre
+Kullanım alanı	Web app, API	Ajan, log collector
+Node bağımsızlığı	Evet	Hayır, node bağlı
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+📌 PV ve PVC Nedir? (Kubernetes Depolama Temelleri)
+🧱 1. PersistentVolume (PV) — Kalıcı Depolama Alanı
+
+PV, Kubernetes cluster içinde hazır bekleyen fiziksel depolama alanıdır.
+
+Admin tarafından oluşturulur
+
+Küme genelinde ortak kaynaktır
+
+Pod’dan bağımsızdır (Pod silinse bile veriler silinmez)
+
+NFS, HostPath, Ceph, Cloud disk (EBS, AzureDisk) olabilir
+
+PV = Gerçek depolama diski
+
+
+📝 2. PersistentVolumeClaim (PVC) — Pod’un Depo Talebi
+
+PVC, uygulamanın disk istemesidir.
+
+Pod “bana 5Gi disk lazım” der → PVC oluşturur
+
+Kubernetes uygun bir PV bulur → eşleştirir (binding)
+
+PVC → PV’ye bağlanınca pod diski kullanabilir
+
+PVC = Uygulamanın disk talebi
+
+
+🔗 3. PV – PVC Eşleşmesi Nasıl Çalışır?
+
+PVC şunu der:
+
+"AccessMode: ReadWriteOnce, Size: 5Gi olan bir PV istiyorum."
+
+PV’ler incelenir → Uygun olan bulunursa → Otomatik bind edilir.
+
+Eşleşme olduğunda:
+
+PV Bound olur
+
+PVC Bound olur
+
+Pod içindeki container diski mount eder
+
+
+📂 4. AccessModes (Önemli!)
+Mode	Açıklama
+ReadWriteOnce (RWO)	Sadece 1 node tarafından okunup yazılabilir
+ReadOnlyMany (ROX)	Birden fazla node okuyabilir
+ReadWriteMany (RWX)	Birden fazla node okuyup yazabilir (NFS, GlusterFS vs.)
+
+
+🏭 5. StorageClass — Dinamik PV Fabrikası
+
+StorageClass, PVC oluşturulduğunda otomatik PV üreten bir sınıftır.
+
+“Disk üretim şablonudur.”
+
+Cloud ortamında EBS / AzureDisk / GCEPersistentDisk gibi kaynakları yaratır
+
+Local PV kullanımında node-affinity uyumlu diskleri doğru zone’da oluşturur
+
+StorageClass olmadan:
+→ PV’leri elle oluşturursun.
+
+StorageClass ile:
+→ PVC gelince otomatik PV oluşturulur (Dynamic Provisioning).
+
+💡 StorageClass = Otomatik PV üreten fabrika.
+
+
+⚙️ 6. volumeBindingMode Türleri
+
+StorageClass içinde yer alan önemli ayar:
+
+6.1 Immediate (Varsayılan)
+
+PVC oluşturulur → PV hemen oluşturulur
+Pod’un hangi node’da çalışacağı önemli değildir
+
+Kullanım:
+Node bağımlılığı olmayan depolar
+(NFS, Ceph, GlusterFS)
+
+Risk:
+Cloud ortamında yanlış zone’da PV oluşturabilir
+ve Pod asla çalışamaz.
+volumeBindingMode: Immediate
+
+6.2 WaitForFirstConsumer (Önerilen)
+
+PVC oluşturulur → PV hemen oluşturulmaz
+Kubernetes önce Pod’un node seçim sürecini bekler
+Pod’un düşeceği node belirlendikten sonra
+→ PV o node’un zone’una uygun şekilde oluşturulur
+
+Avantaj:
+Zone/region uyuşmazlığı tamamen çözülür
+Local PV için şarttır
+Kullanım:
+AWS EBS, AzureDisk, GCE PD, Local storage
+
+volumeBindingMode: WaitForFirstConsumer
+
+💡 En güvenli ve en modern tercih budur.
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+Job & CronJob Nedir ?
+
+🧱 Job
+
+Ne yapar?
+➡️ Tek seferlik iş çalıştırır, bitince durur.
+
+Kullanım:
+
+DB migration
+
+Batch / script
+
+Backup (manuel)
+
+Özet özellikler:
+
+Başarılı olana kadar retry
+
+Bitince Pod kapanır
+
+Sürekli çalışmaz
+
+restartPolicy: Never
+backoffLimit: 3 ➡️ Pod 3 kez başarısız olursa, Job Failed olur ve durur.
+
+⏰ CronJob
+
+Ne yapar?
+➡️ Job’u zamanlanmış şekilde çalıştırır.
+
+Kullanım:
+
+Günlük backup
+
+Saatlik temizlik
+
+Haftalık rapor
+
+schedule: "0 2 * * *"   # Her gün 02:00
+
+
+Önemli ayarlar:
+
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 3
+
+🆚 Job vs CronJob
+
+Job → Bir kere çalışır
+
+CronJob → Zamanlı çalışır
+
+🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+🔐 RBAC & Service Account (SA)
+
+🧩 RBAC Nedir?
+RBAC = Role Based Access Control
+➡️ Kubernetes’te yetki yönetimi yapmamızı sağlayan sistemdir.
+
+🎯 Ne için kullanılır?
+
+RBAC; bir kimliğin hangi kaynağa, hangi işlemi yapabileceğini belirlemek için kullanılır.
+
+3 temel soru
+
+RBAC şunu cevaplar:
+
+Kim? → User / ServiceAccount
+
+Nereye? → Hangi resource (pod, secret, deployment…)
+
+Ne yapabilir? → get, list, create, delete…
+
+🧱 RBAC Neyi Çözüyor?
+Problem	RBAC çözümü
+Herkes her şeyi görmesin	Erişimi sınırlar
+Pod’lar fazla yetkiyle çalışmasın	Minimum yetki (least privilege)
+Yanlışlıkla silme/bozma riski	İzinleri parçalara ayırır
+Prod/stg/env ayrımı	Namespace bazlı yetkilendirme
+
+RBAC = Kontrol + Güvenlik + Sınırlandırma
+
+🔐 Temel Parçaları
+Bileşen	Görevi	Kapsam
+Role	İzinlerin listesi	Namespace
+ClusterRole	İzinlerin listesi	Tüm cluster
+RoleBinding	Rolü bir kimliğe verir	Namespace
+ClusterRoleBinding	ClusterRole’ü kimliğe verir	Tüm cluster
+
+📌 Role izin tanımlar, Binding o izni birine verir.
+
+🎭 Kimlik Türleri
+
+Kimlik (identity) = RBAC’ın yetki verdiği hedef
+
+Kimlik	Ne için?
+User	İnsan / Admin
+ServiceAccount	Pod / uygulama
+Group	Toplu kullanıcılar
+
+Pod bir talep yaparsa → ServiceAccount kimliği kullanır.
+
+⚙️ İşleyiş Mantığı (Akış)
+Pod / User
+   ↓ (kim?)
+Token / Cert
+   ↓ Authentication (401?)
+RBAC → Role/ClusterRole (403?)
+   ↓
+Resource → İşlem gerçekleşir
+
+
+Token doğru → ✔️ 401 geçildi
+Yetki doğru → ✔️ 403 geçildi
+
+✔️ Basit Örnek Senaryolar
+Senaryo	Ne yapılır?
+Pod’lar sadece listeleme yapsın	Role + RoleBinding
+Developer sadece log’lara baksın	Role + Binding (get/list)
+CI/CD sadece deploy atsın	Role (create/update) + Binding
+Admin tam yetkili olsun	⚠️ ClusterRoleBinding (dikkat!)
+📌 Verbs (İşlemler)
+
+RBAC izinleri verbs ile ifade eder:
+
+get → okunur
+
+list → listelenir
+
+watch → izlenir
+
+create → oluşturulur
+
+update → güncellenir
+
+delete → silinir
+
+Read: get + list + watch
+
+🎯 Özet Cümle
+
+RBAC = Kubernetes’te “kimin ne yapabileceğini” belirleyen sistemdir.
+Kullanım amacı: Yetki, kontrol, güvenlik.
+
+💎 Akılda Kalması İçin
+Kim?           → User / SA
+Ne?            → Resource (pods, secrets...)
+Nasıl?         → Verbs (get, list…)
+Nerede?        → Namespace / Cluster
+
+
+ServiceAccount Nedir ?
+
+➡️ Pod’un kimliğidir.
+Pod’un Kubernetes API’si ile konuşmasını sağlar.
+İnsanların kimliği → User
+Pod’ların kimliği → ServiceAccount
+
+📌 Ne için kullanılır?
+
+Pod’un K8s API’ye erişmesi için
+Pod’a RBAC ile yetki vermek için
+CI/CD, Operator, Controller gibi otomatik işlemlerde
+
+🔑 En önemli mantık
+SA = Kimlik
+RBAC = Yetki
+
+SA tek başına yetki vermez, sadece “ben buyum” der.
+RBAC eklersen “şunu yapabilirsin” olur.
+
+🧱 Çalışma akışı
+Pod → ServiceAccount → Token → API Server → RBAC kontrolü
+
+Token doğru değilse → 401
+Yetki yoksa → 403
+
+📍 Nerede bulunur?
+
+Her namespace’te otomatik default SA vardır.
+Belirtmezsen Pod bunu kullanır.
+
+Pod içindeki token yolu:
+
+/var/run/secrets/kubernetes.io/serviceaccount/token

@@ -1,0 +1,26 @@
+☸️ Kubernetes (Orchestration)
+→ Konteynerlerin otomatik olarak yönetilmesini, ölçeklenmesini ve çalışır durumda tutulmasını sağlar.
+
+📈 Prometheus + Grafana (Monitoring)
+→ Sistem ve uygulama metriklerini toplar, izler ve görsel panellerle sunar.
+
+🧱 Helm (Package Management)
+→ Kubernetes uygulamalarını paketleyerek kurmayı, güncellemeyi ve yönetmeyi kolaylaştırır.
+
+🌐 Calico / Cilium (Network)
+→ Pod’lar arası ağ iletişimini ve ağ güvenlik politikalarını yönetir.
+
+💾 Longhorn / Ceph (Storage)
+→ Uygulama verilerinin kalıcı olarak saklanmasını ve dağıtık depolamayı sağlar.
+
+🚀 Argo CD (GitOps / CI/CD)
+→ Git deposundaki tanımlara göre uygulamaların otomatik ve tutarlı şekilde ortama dağıtılmasını sağlar.
+
+🔎 Loki / Jaeger (Observability) – ELK (Kibana, Elasticsearch, Logstash)
+→ Log, metrik ve servisler arası isteklerin izlenmesini sağlayarak sistemi gözlemlenebilir hale getirir.
+
+🏗️ Harbor (Registry)
+→ Konteyner imajlarının güvenli şekilde saklanmasını, taranmasını ve yönetilmesini sağlar.
+
+🧩 containerd / etcd / CoreDNS (Core Components)s
+→ Kubernetes’in container çalıştırma, yapılandırma saklama ve servis keşfi gibi temel altyapı bileşenlerini sağlar.
