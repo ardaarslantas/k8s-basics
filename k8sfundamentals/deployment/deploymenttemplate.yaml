@@ -1,0 +1,22 @@
+apiVersion: apps/v1              # Deployment API versiyonu (her zaman apps/v1 kullanılır)
+kind: Deployment                 # Kaynak türü: Deployment
+metadata:
+  name: firstdeployment          # Deployment objesinin adı
+  labels:
+    team: development            # Deployment objesine eklenen label (gruplama/filtreleme için)
+
+spec:                            # Deployment’ın çalışma özellikleri
+  replicas: 3                    # Aynı pod’dan 3 adet çalıştırılacak
+  selector:                      # Deployment hangi pod’ları yönetecek?
+    matchLabels:
+      app: frontend              # "app=frontend" label’lı pod’ları yönetecek
+  template:                      # Pod şablonu (Deployment bu template ile pod üretir)
+    metadata:
+      labels:
+        app: frontend            # Pod’lara verilecek label (selector ile eşleşmeli!)
+    spec:                        # Pod’un iç yapısı
+      containers:                # Pod içindeki container listesi
+      - name: nginx              # Container adı
+        image: nginx:latest      # Kullanılacak container image’i (Docker Hub’dan nginx:latest)
+        ports:
+        - containerPort: 80      # Container’ın dinlediği port (Nginx için 80)

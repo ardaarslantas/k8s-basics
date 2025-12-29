@@ -1,0 +1,13 @@
+apiVersion: v1              # Kubernetes API versiyonu (Service için hep v1)
+kind: Service               # Oluşturulan nesne Service
+metadata:
+  name: frontend            # Service'in adı (DNS: frontend.default.svc.cluster.local)
+spec:
+  type: NodePort            # Servis tipi: cluster dışından erişilebilir hale getirir
+  selector:
+    app: frontend           # app=frontend label'lı Pod'lara trafik yönlendirir
+  ports:
+    - protocol: TCP         # TCP protokolü
+      port: 80              # Service'in cluster içinde açtığı port
+      targetPort: 80        # Pod içindeki container'ın dinlediği port
+      # nodePort: xxxx      # Eğer yazmazsan Kubernetes otomatik 30000-32767 arası bir port atar

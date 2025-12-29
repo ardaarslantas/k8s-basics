@@ -1,0 +1,26 @@
+apiVersion: apps/v1            # Deployment nesnesi için kullanılan API versiyonu
+kind: Deployment               # Kaynağın türü: Deployment
+metadata:
+  name: rcdeployment           # Deployment ismi
+  labels:                      # Bu Deployment'a ait etiketler
+    team: development          # "team=development" etiketi eklenmiş
+
+spec:
+  replicas: 3                  # Her zaman 3 Pod çalıştırılacak
+  selector:                    # Deployment hangi Pod'ları yönetecek?
+    matchLabels:
+      app: recreate            # "app=recreate" etiketine sahip Pod'ları seçecek
+
+  strategy:                    # Deployment'ın güncelleme stratejisi
+    type: Recreate             # Recreate = Eski Pod'ları sil, yenilerini başlat (kesinti olabilir)
+
+  template:                    # Pod şablonu (yeni Pod'lar bu template'e göre yaratılır)
+    metadata:
+      labels:
+        app: recreate          # Pod'lara "app=recreate" etiketi veriliyor
+    spec:
+      containers:              # Pod içindeki container tanımları
+      - name: nginx            # Container adı
+        image: nginx           # Kullanılacak image: "nginx" (Docker Hub’dan çeker)
+        ports:
+        - containerPort: 80    # Container 80 portunu açar (genelde HTTP için)

@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontendpod
+  labels:
+    app: frontend        # cachepod bu label'a göre yanına yerleşmeye çalışacak
+    deployment: test     # anti-affinity kısmı bunu kullanmıyor
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cachepod
+spec:
+  affinity:
+    podAffinity:  # başka podlara yakın durma kuralları
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In        # app label'ı frontend olmalı
+            values:
+            - frontend
+        topologyKey: kubernetes.io/hostname  # aynı node üzerinde olmalı (hostname = node)
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1              # düşük öncelikli tercih
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: color
+              operator: In     # color label'ı blue olan podların yanına yerleşmeyi tercih eder
+              values:
+              - blue
+          topologyKey: kubernetes.io/hostname  # yine aynı node seviyesinde yakınlık
+    podAntiAffinity:  # bazı podlardan uzak durma kuralları
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100            # yüksek öncelikli tercih
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: deployment
+              operator: In     # deployment=prod podlarından uzak durmayı tercih eder
+              values:
+              - prod
+          topologyKey: topology.kubernetes.io/zone  # zone bazında uzak durmaya çalışır
+  containers:
+  - name: cachecontainer
+    image: redis:6-alpine

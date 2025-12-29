@@ -1,0 +1,13 @@
+apiVersion: v1 #kubectl explain pod yazdığımda hangi version'da olduğunu görüp ona göre yazmam gerekiyor.
+kind: Pod  # oluşturmak istediğim objenin ne olduğunu yazarım.
+metadata:
+  name: firstpod
+  labels:
+    app: frontend
+    team: developer
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+      - containerPort: 80

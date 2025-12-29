@@ -1,0 +1,18 @@
+apiVersion: storage.k8s.io/v1         # StorageClass API versiyonu
+kind: StorageClass                    # Bu dosya bir StorageClass oluşturuyor
+metadata:
+  name: standarddisk                  # StorageClass adı (PVC içinde storageClassName olarak geçecek)
+
+parameters:                           # Azure Disk'e özel parametreler
+  cachingmode: ReadOnly               # Azure disk caching: None / ReadOnly / ReadWrite
+  kind: Managed                       # Managed Disk kullanılacak (Azure'un modern disk yönetimi)
+  storageaccounttype: StandardSSD_LRS # Disk tipi: Standart SSD (uygun fiyat + iyi performans)
+
+provisioner: kubernetes.io/azure-disk # Bu StorageClass Azure Disk provisioner ile PV üretecek
+
+reclaimPolicy: Delete                 # PVC silinince PV ve Azure diski de otomatik silinsin
+                                      # (Alternatif: Retain → silinmez, manuel temizlenir)
+
+volumeBindingMode: WaitForFirstConsumer # PV hemen oluşturulmaz;
+                                        # Pod’un hangi node’a schedule edileceği beklenir,
+                                        # sonra o node’un bulunduğu availability zone'da disk oluşturulur

@@ -1,0 +1,33 @@
+apiVersion: v1               # Pod tanımı için kullanılan API versiyonu
+kind: Pod                    # Bu bir Pod kaynağı
+
+metadata:
+  name: multicontainer       # Pod'un adı (kubectl get pods çıktısında görünecek)
+
+spec:                        # Pod'un özellikleri
+  containers:                # Pod içindeki container listesi
+  - name: webcontainer       # İlk container'ın adı
+    image: nginx             # Kullanılan image: nginx (web server)
+    ports:
+      - containerPort: 80    # Container içindeki 80 portunu aç (nginx default port)
+    volumeMounts:
+    - name: sharedvolume     # "sharedvolume" isimli volume'u mount et
+      mountPath: /usr/share/nginx/html   # nginx'in web root klasörüne mount et
+
+  - name: sidecarcontainer   # İkinci container (sidecar)
+    image: busybox           # Küçük yardımcı image: busybox
+    command: ["/bin/sh"]     # Çalıştırılacak ana komut: shell
+    args:                    # Shell'e verilecek argümanlar
+      - "-c"
+      - "while true; do wget -O /var/log/index.html https://raw.githubusercontent.com/ozgurozturknet/hello-world/master/index.html; sleep 15; done"
+                             # Bu script ile:
+                             # 1) 15 sn'de bir belirtilen URL'den index.html indiriliyor
+                             # 2) Dosya /var/log/index.html olarak kaydediliyor
+    volumeMounts:
+    - name: sharedvolume     # Yine aynı volume'u mount et
+      mountPath: /var/log    # Bu container içinde /var/log klasörüne mount et
+
+  volumes:
+  - name: sharedvolume       # Ortak kullanılacak volume tanımı
+    emptyDir: {}             # Pod çalıştığı sürece geçici boş disk alanı (emptyDir)
+                             # Pod silinince bu volume da silinir

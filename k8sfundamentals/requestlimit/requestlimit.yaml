@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: requestlimit          # Pod'a etiket ekleniyor (test=requestlimit)
+  name: requestlimit            # Pod'un adı
+spec:
+  containers:
+  - name: requestlimit          # Container adı
+    image: ozgurozturknet/stress  # Kullanılacak Docker imajı (stress aracıyla CPU/RAM yük testi)
+    resources:                  # Kaynak istekleri ve limitleri
+      requests:
+        memory: "64M"           # Pod için minimum 64 MB RAM garanti edilir (scheduler buna göre yerleştirir)
+        cpu: "250m"             # Pod için minimum 0.25 CPU garanti edilir
+      limits:
+        memory: "256M"          # Pod en fazla 256 MB RAM kullanabilir; aşarsa OOMKilled olur (down → restart)
+        cpu: "0.5"              # Pod en fazla 0.5 CPU (yarım CPU) kullanabilir; aşarsa throttle edilir (yavaşlar ama down olmaz)

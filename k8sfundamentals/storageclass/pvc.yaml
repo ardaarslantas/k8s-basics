@@ -1,0 +1,20 @@
+apiVersion: v1                       # PVC için kullanılan API versiyonu
+kind: PersistentVolumeClaim          # Bu dosya bir PersistentVolumeClaim (PVC) oluşturuyor
+
+metadata:
+  name: mysqlclaim                   # PVC'nin adı (Pod içinde claimName olarak kullanılacak)
+
+spec:
+  accessModes:
+    - ReadWriteOnce                  # RWO: Disk aynı anda sadece 1 node tarafından okunup yazılabilir
+                                     # (Azure Disk için zaten zorunlu olan mod)
+
+  volumeMode: Filesystem             # PV, pod içine mount edildiğinde dosya sistemi olarak bağlanacak
+                                     # Diğer seçenek: Block (ham blok cihazı olarak bağlar)
+
+  resources:
+    requests:
+      storage: 5Gi                   # PVC, 5Gi boyutunda disk talep ediyor
+
+  storageClassName: "standarddisk"   # Hangi StorageClass'ın disk oluşturacağı
+                                     # → standarddisk (bir önceki YAML'da oluşturduğun SC)

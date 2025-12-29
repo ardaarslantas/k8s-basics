@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend # Deployment adı
+  labels:
+    team: development # Deployment'a eklenen etiket
+spec:
+  replicas: 3 # 3 Pod oluşturulacak
+  selector:
+    matchLabels:
+      app: frontend # Bu Deployment 'app=frontend' etiketli Pod'ları yönetecek
+  template:
+    metadata:
+      labels:
+        app: frontend # Pod'lara 'app=frontend' etiketi eklenecek
+    spec:
+      containers:
+        - name: frontend # Container adı
+          image: ozgurozturknet/k8s:blue # Kullanılacak Docker imajı
+          ports:
+            - containerPort: 80 # Container içindeki uygulama 80 portunu dinleyecek
+          livenessProbe: # Container'ın canlılık kontrolü (çalışıyor mu?)
+            httpGet:
+              path: /healthcheck # /healthcheck endpointine HTTP GET isteği yapılacak
+              port: 80 # 80 portundan kontrol yapılacak
+            initialDelaySeconds: 5 # Container başladıktan 5 sn sonra ilk kontrol
+            periodSeconds: 5 # Her 5 sn'de bir kontrol yapılır
+          readinessProbe: # Container'ın trafiğe hazır olup olmadığını kontrol eder
+            httpGet:
+              path: /ready # /ready endpointine HTTP GET isteği yapılacak
+              port: 80 # 80 portundan kontrol yapılacak
+            initialDelaySeconds: 20 # Pod başladıktan 20 sn sonra ilk kontrol yapılır
+            periodSeconds: 3 # Her 3 sn'de bir kontrol yapılır
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend # Service adı
+spec:
+  selector:
+    app: frontend # 'app=frontend' etiketli Pod'lara trafik yönlendirecek
+  ports:
+    - protocol: TCP # TCP protokolü kullanılacak
+      port: 80 # Service'in dışarıya açtığı port
+      targetPort: 80 # Pod içindeki container'ın dinlediği port

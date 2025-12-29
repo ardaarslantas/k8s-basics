@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: development # namespace: Kubernetes içindeki kaynakları (Pod, Service, Deployment vs.) mantıksal gruplara ayırmaya yarayan bir yapıdır.
+# Varsayılan olarak gelen namespace’ler: 
+# default → senin uygulamalarını koyduğun yer
+
+# kube-system → Kubernetes’in kendi bileşenleri
+# kube-public → herkese açık kaynaklar
+# kube-node-lease → node durumlarını takip için
+  name: namespacepod
+spec:
+  containers:
+  - name: namespacecontainer
+    image: nginx:latest
+    ports:
+    - containerPort: 80

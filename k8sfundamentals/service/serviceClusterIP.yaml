@@ -1,0 +1,12 @@
+apiVersion: v1              # Kubernetes API versiyonu (Service her zaman v1)
+kind: Service               # Bu objenin türü: Service
+metadata:
+  name: backend             # Service'in adı (DNS: backend.default.svc.cluster.local)
+spec:
+  type: ClusterIP           # Service tipi: sadece cluster içinden erişilebilir. ClusterIP → Bu Service sadece cluster içindeki diğer Pod’lardan erişilir. Dış dünyaya açılmaz.
+  selector:
+    app: backend            # app=backend label'ına sahip Pod'ları seçer
+  ports:
+    - protocol: TCP         # Trafik protokolü TCP (varsayılan)
+      port: 5000            # Service'in cluster içinde açtığı port (backend:5000)
+      targetPort: 5000      # Pod içindeki container'ın dinlediği port

@@ -1,0 +1,12 @@
+apiVersion: v1              # Kubernetes API versiyonu (Service için hep v1)
+kind: Service               # Oluşturulan nesne Service
+metadata:
+  name: frontendlb          # Service adı: DNS = frontendlb.default.svc.cluster.local
+spec:
+  type: LoadBalancer        # Servis tipi: dış dünyaya cloud load balancer üzerinden açılır. (GKE, AWS, AZURE)
+  selector:
+    app: frontend           # app=frontend label’lı Pod’lara trafik gönderir
+  ports:
+    - protocol: TCP         # Protokol TCP
+      port: 80              # Service’in dinlediği port (cluster içinden erişim için de 80)
+      targetPort: 80        # Pod içindeki container’ın dinlediği port

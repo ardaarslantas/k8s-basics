@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+  labels:
+    app: firstapp
+    tier: frontend
+    mycluster.local/team: team1
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+    app: firstapp
+    tier: frontend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod3
+  labels:
+    app: firstapp
+    tier: backend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod4
+  labels:
+    app: firstapp
+    tier: backend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod5
+  labels:
+    app: secondapp
+    tier: frontend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod6
+  labels:
+    app: secondapp
+    tier: frontend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod7
+  labels:
+    app: secondapp
+    tier: backend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod8
+  labels:
+    app: secondapp
+    tier: backend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod9
+  labels:
+    team: team1
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod10
+  labels:
+    team: team2
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod11
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    hddtype: ssd 
+
+# 📒 Kubernetes kubectl label ve selector notları
+
+# Podları Label Selector ile Listeleme
+# kubectl get pods -l "app"                          # 'app' label’i olan tüm podları getirir
+# kubectl get pods -l "app" --show-labels            # 'app' label’i olan podları getirir ve tüm label’ları gösterir
+# kubectl get pods -l "app=firstapp" --show-labels   # app=firstapp olan podları getirir
+# kubectl get pods -l "app=firstapp, tier=frontend" --show-labels   # hem app=firstapp hem tier=frontend olan podları getirir
+# kubectl get pods -l "app=firstapp, tier!=frontend" --show-labels  # app=firstapp olup tier=frontend olmayanları getirir
+# kubectl get pods -l "app, tier=frontend" --show-labels            # 'app' label’i tanımlı olan ve tier=frontend olan podları getirir
+
+# # İleri Seçim Operatörleri
+# kubectl get pods -l 'app in (firstapp,secondapp)' --show-labels   # app=firstapp veya secondapp olan podları getirir
+# kubectl get pods -l 'app notin (firstapp,secondapp)' --show-labels # app label’i olup firstapp/secondapp olmayanları getirir
+# kubectl get pods -l 'app, app notin (firstapp)' --show-labels     # app label’i tanımlı olan ve firstapp olmayanları getirir
+# kubectl get pods -l '!app' --show-labels                         # app label’i olmayan podları getirir
+# kubectl get pods -l 'app in (firstapp), tier notin (frontend)' --show-labels  # app=firstapp olup tier=frontend olmayanları getirir
+
+# # Podlara Label Ekleme / Silme
+# kubectl label pods pod9 app=thirdapp              # pod9 pod’una app=thirdapp label’i ekler
+# kubectl label pods pod9 app-                      # pod9 pod’undan app label’ini siler
+# kubectl label --overwrite pods pod9 team=team3    # pod9 pod’una team=team3 label’i ekler veya üzerine yazar
+# kubectl label pods --all foo=bar                  # tüm podlara foo=bar label’i ekler
+# kubectl get pods --show-labels                    # podların mevcut label’larını gösterir
+
+
+# # Node Label İşlemleri
+# kubectl get nodes --show-labels                   # tüm node’ların label’larını gösterir
+# kubectl label nodes minikube hddtype=ssd          # minikube node’una hddtype=ssd label’i ekler
